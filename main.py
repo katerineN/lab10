@@ -11,12 +11,13 @@ import joblib
 
 @st.cache(allow_output_mutation=True)
 def loadModel():
+    #loaded_model = pickle.load(open('mode.sav', 'rb'))
     loaded_model = joblib.load(open('lab10.sav', 'rb'))
     return loaded_model
 
 @st.cache(allow_output_mutation=True)
-def load_bases():
-    emb_db = './embedBaseDf2.csv'
+def loadBases():
+    emb_db = './embedBaseDf3.csv'
     emb_base = pd.read_csv(emb_db, delimiter=',')
     emb_base['embed'] = emb_base['embed'].apply(
         lambda x: np.frombuffer(base64.b64decode(bytes(x[2:-1], encoding='ascii')), dtype=np.float32))
@@ -32,9 +33,10 @@ def encodeImage(arr) -> np.ndarray:
 
 def build_histogram(descriptor_list, cluster_alg):
     histogram = np.zeros(2048)
-    cluster_result = cluster_alg.predict(descriptor_list.astype(float))
+    #cluster_result = cluster_alg.predict(descriptor_list.astype('float'))
+    cluster_result = cluster_alg.predict(descriptor_list.astype('float'))
     unique, counts = np.unique(cluster_result, return_counts=True)
-    s = counts.sum()
+    s = len(counts)
     histogram[unique] = counts / s
     return histogram.astype('float32')
 
@@ -47,10 +49,11 @@ def workWithDb(img, classifier, db, db_neighbours):
     distances, indices = db_neighbours.kneighbors(predhist.reshape(1, -1), return_distance=True)
     print(indices)
     return db.loc[indices[0], ['path']].values, distances[0]
+    #return db.loc[indices[0]-2, ['path']].values, distances[0]
 
 def main():
-    loaded_model = load_model()
-    database = load_bases()
+    loaded_model = loadModel()
+    database = loadBases()
     db_neighbours = NearestNeighbors(n_neighbors=5, metric='cosine')
     # print(type(database))
     emdbs = encodeImage(database['embed'].values)
@@ -63,14 +66,14 @@ def main():
             img_paths, dists = workWithDb(np.array(img), loaded_model, database, db_neighbours)
             print(img_paths)
             for i in range(len(img_paths)):
-                st.image(PIL.Image.open(img_paths[i][0]),
+                st.image(PIL.Image.open('C:'+img_paths[i][0]),
                          caption='Image {} with dist {}'.format(i + 1, f'{dists[i]:.3f}', width=580))
         except Exception as e:
             st.write('CRASHED:{}'.format(e))
 
 # main()
 loaded_model = loadModel()
-database = load_bases()
+database = loadBases()
 db_neighbours = NearestNeighbors(n_neighbors=5, metric='cosine')
 #print(type(database))
 emdbs = encodeImage(database['embed'].values)
